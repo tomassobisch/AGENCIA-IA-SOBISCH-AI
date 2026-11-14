@@ -25,7 +25,6 @@ python3 -m http.server 8000
    - `formEndpoint`: URL que recibe el formulario. Lo más fácil es crear un formulario gratis en [Formspree](https://formspree.io) y pegar su URL (`https://formspree.io/f/xxxx`). Si lo dejas vacío pero rellenas `email`, el formulario abre el correo del visitante con el mensaje ya escrito.
    - `email`: ya configurado (`tomassobisch@sobtom.com`).
    - `calendlyUrl`: enlace a tu calendario. Si está vacío, el enlace "Prefiero reservar directamente…" no se muestra.
-2. **`index.html` → FAQ**: sustituye `[TU PRECIO]` y `[X DÍAS]`.
 
 ## Publicar
 
