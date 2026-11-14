@@ -253,3 +253,62 @@ a{color:var(--orange-soft)}a:hover{color:var(--orange-hover)}
 @keyframes revealIn{from{opacity:.12;transform:translateY(30px)}to{opacity:1;transform:none}}
 }
 @media (prefers-reduced-motion: reduce){.stars,.ch,.fade-up,.tilt,.reveal{animation:none!important;opacity:1!important}}
+
+/* ---- FAQ: marcador +/− ---- */
+.faq summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:var(--orange-soft);transition:transform .2s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.swipe-hint{display:none}
+
+/* ---- Rediseño móvil: menos bloques, más ritmo ---- */
+@media (max-width:640px){
+  .section,.cta,.faq{padding-top:56px;padding-bottom:56px}
+  .section{gap:28px}
+  .section--tight-top{padding-top:8px}
+  .band .section{gap:32px}
+  .section__head{gap:10px}
+  .body-lg{font-size:16px}
+
+  /* Hero */
+  .hero__inner{padding-top:40px;padding-bottom:48px;gap:32px}
+  .hero__copy{gap:20px}
+  .hero__img{aspect-ratio:1/1;object-position:center 20%;border-radius:20px}
+  .checks{flex-direction:column;gap:10px}
+
+  /* Servicios: filas compactas con el icono a la izquierda */
+  .services{gap:12px}
+  .services .card{display:grid;grid-template-columns:44px 1fr;column-gap:16px;row-gap:4px;padding:18px;border-radius:16px}
+  .services .icon{grid-row:span 2;width:44px;height:44px;border-radius:12px}
+  .services .h3{font-size:18px;align-self:end}
+  .services .body{font-size:14px;line-height:1.55}
+
+  /* Pasos: línea de tiempo en vez de cajas */
+  .steps{gap:0}
+  .steps .card{position:relative;background:none;border:none;border-radius:0;padding:8px 0 32px 64px;gap:6px}
+  .steps .card:last-child{padding-bottom:0}
+  .steps .step__num{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;background:rgba(255,122,26,.12);border:1px solid rgba(255,122,26,.45);font-size:16px;display:flex;align-items:center;justify-content:center}
+  .steps .card::before{content:"";position:absolute;left:21px;top:52px;bottom:6px;width:2px;border-radius:2px;background:linear-gradient(var(--line-strong),rgba(58,52,112,.15))}
+  .steps .card:last-child::before{display:none}
+  .steps .h3{font-size:19px}
+  .steps .tilt{animation:none;opacity:1;transform:none}
+
+  /* Sectores: carrusel deslizable */
+  .swipe-hint{display:flex;align-items:center;gap:8px;margin:-12px 0 0;font-size:13px;font-weight:600;color:var(--orange-soft)}
+  .cases{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin:0 -16px;padding:4px 16px 12px;scroll-padding-left:16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .cases::-webkit-scrollbar{display:none}
+  .cases .card{flex:0 0 84%;scroll-snap-align:start;padding:22px}
+  .cases .tilt{animation:none;opacity:1;transform:none}
+
+  /* Sobre mí */
+  .photos{gap:12px}
+
+  /* FAQ */
+  .faq{gap:24px}
+  .faq__list{gap:10px}
+  .faq details{padding:16px 18px}
+  .faq summary{font-size:16px}
+
+  /* Footer */
+  .footer__inner{padding-top:28px}
+}
