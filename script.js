@@ -2,9 +2,11 @@
    CONFIGURACIÓN — rellena estos valores y listo.
    ============================================================ */
 const CONFIG = {
-  // Endpoint que recibe el formulario (p. ej. Formspree: https://formspree.io/f/xxxxxxx).
-  // Si lo dejas vacío, el formulario abre el email del visitante con el mensaje ya escrito.
-  formEndpoint: "",
+  // Servicio que reenvía cada solicitud del formulario a tu correo (FormSubmit.co, gratis).
+  // Tras activarlo, puedes cambiar el email de la URL por el alias aleatorio que te da
+  // FormSubmit para no exponer tu dirección. Si falla, el formulario abre el correo del
+  // visitante con el mensaje ya escrito (plan B).
+  formEndpoint: "https://formsubmit.co/ajax/tomassobisch@sobtom.com",
   // Tu email de contacto (se muestra en el footer y se usa como alternativa al endpoint).
   email: "tomassobisch@sobtom.com",
   // Enlace a tu calendario (Calendly, Cal.com…). Si está vacío, el enlace no se muestra.
@@ -115,29 +117,10 @@ const CONFIG = {
     }
 
     const data = Object.fromEntries(new FormData(form));
-    if (data._gotcha) return; // bot
+    if (data._honey) return; // bot
+    delete data._honey;
 
-    if (CONFIG.formEndpoint) {
-      btn.disabled = true;
-      btn.textContent = "Enviando…";
-      try {
-        const res = await fetch(CONFIG.formEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify(data),
-        });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        showDone();
-      } catch (err) {
-        setNote("No se pudo enviar. Inténtalo de nuevo o escríbeme por Instagram.", true);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Quiero mi llamada gratis";
-      }
-      return;
-    }
-
-    if (CONFIG.email) {
+    const sendByMail = () => {
       const body = [
         "Nombre: " + data.nombre,
         "Negocio: " + (data.negocio || "-"),
@@ -151,12 +134,53 @@ const CONFIG = {
         "mailto:" + CONFIG.email +
         "?subject=" + encodeURIComponent("Llamada gratis de 15 min — " + data.nombre) +
         "&body=" + encodeURIComponent(body);
+    };
+
+    if (CONFIG.formEndpoint) {
+      btn.disabled = true;
+      btn.textContent = "Enviando…";
+      try {
+        const res = await fetch(CONFIG.formEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            _subject: "Nuevo cliente potencial: " + data.nombre + (data.negocio ? " (" + data.negocio + ")" : ""),
+            _template: "table",
+            _replyto: data.email,
+            Nombre: data.nombre,
+            Negocio: data.negocio || "-",
+            Email: data.email,
+            WhatsApp: data.whatsapp || "-",
+            "Qué quiere automatizar": data.mensaje || "-",
+            Página: location.href,
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || String(json.success) !== "true") throw new Error(json.message || "HTTP " + res.status);
+        showDone();
+      } catch (err) {
+        console.error("[form]", err);
+        // Plan B para no perder nunca un cliente: abrir su correo con el mensaje ya escrito.
+        if (CONFIG.email) {
+          setNote("No se pudo enviar automáticamente. Se abrirá tu correo con el mensaje listo: solo dale a enviar.", true);
+          sendByMail();
+        } else {
+          setNote("No se pudo enviar. Inténtalo de nuevo o escríbeme por Instagram.", true);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Quiero mi llamada gratis";
+      }
+      return;
+    }
+
+    if (CONFIG.email) {
+      sendByMail();
       showDone();
       return;
     }
 
     setNote("El formulario aún no está activo. Escríbeme por Instagram @tomassobisch.ai.", true);
-    console.warn("[form] Configura CONFIG.formEndpoint o CONFIG.email en script.js");
   });
 
   form.addEventListener("input", (e) => {

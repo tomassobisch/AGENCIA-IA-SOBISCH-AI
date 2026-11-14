@@ -22,7 +22,7 @@ python3 -m http.server 8000
 ## Antes de publicar: rellena los datos pendientes
 
 1. **`script.js` → `CONFIG`**
-   - `formEndpoint`: URL que recibe el formulario. Lo más fácil es crear un formulario gratis en [Formspree](https://formspree.io) y pegar su URL (`https://formspree.io/f/xxxx`). Si lo dejas vacío pero rellenas `email`, el formulario abre el correo del visitante con el mensaje ya escrito.
+   - `formEndpoint`: ya conectado a FormSubmit → llega a `tomassobisch@sobtom.com`. **La primera vez** que alguien envíe el formulario desde la web publicada, FormSubmit te manda un email de activación: ábrelo y confirma. Después puedes sustituir el email de la URL por el alias aleatorio que te da FormSubmit.
    - `email`: ya configurado (`tomassobisch@sobtom.com`).
    - `calendlyUrl`: enlace a tu calendario. Si está vacío, el enlace "Prefiero reservar directamente…" no se muestra.
 
