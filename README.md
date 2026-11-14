@@ -8,6 +8,7 @@ Landing page estática (HTML + CSS + JS, sin dependencias ni build) construida a
 index.html   — contenido y estructura
 styles.css   — tokens de color, componentes, responsive y animaciones
 script.js    — configuración, titular animado y formulario
+politica-de-cookies.html — política de cookies
 assets/      — fotos y favicon
 ```
 
@@ -22,7 +23,7 @@ python3 -m http.server 8000
 
 1. **`script.js` → `CONFIG`**
    - `formEndpoint`: URL que recibe el formulario. Lo más fácil es crear un formulario gratis en [Formspree](https://formspree.io) y pegar su URL (`https://formspree.io/f/xxxx`). Si lo dejas vacío pero rellenas `email`, el formulario abre el correo del visitante con el mensaje ya escrito.
-   - `email`: tu email de contacto (aparece en el footer).
+   - `email`: ya configurado (`tomassobisch@sobtom.com`).
    - `calendlyUrl`: enlace a tu calendario. Si está vacío, el enlace "Prefiero reservar directamente…" no se muestra.
 2. **`index.html` → FAQ**: sustituye `[TU PRECIO]` y `[X DÍAS]`.
 

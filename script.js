@@ -6,7 +6,7 @@ const CONFIG = {
   // Si lo dejas vacío, el formulario abre el email del visitante con el mensaje ya escrito.
   formEndpoint: "",
   // Tu email de contacto (se muestra en el footer y se usa como alternativa al endpoint).
-  email: "",
+  email: "tomassobisch@sobtom.com",
   // Enlace a tu calendario (Calendly, Cal.com…). Si está vacío, el enlace no se muestra.
   calendlyUrl: "",
 };
@@ -51,12 +51,6 @@ const CONFIG = {
   const year = document.querySelector("[data-year]");
   if (year) year.textContent = new Date().getFullYear();
 
-  const mail = document.querySelector("[data-email]");
-  if (mail && CONFIG.email) {
-    mail.href = "mailto:" + CONFIG.email;
-    mail.textContent = CONFIG.email;
-    mail.hidden = false;
-  }
   const cal = document.querySelector("[data-calendly]");
   if (cal && CONFIG.calendlyUrl) {
     cal.href = CONFIG.calendlyUrl;
@@ -64,6 +58,23 @@ const CONFIG = {
     cal.rel = "noopener";
     cal.hidden = false;
   }
+})();
+
+/* ---------- Aviso de cookies (informativo) ----------
+   La web no instala cookies propias. Recordamos que el aviso se cerró
+   con localStorage, que es técnico y no requiere consentimiento. */
+(function cookieNote() {
+  const note = document.querySelector("[data-cookie-note]");
+  if (!note) return;
+  const KEY = "cookie-note-ok";
+  let seen = false;
+  try { seen = localStorage.getItem(KEY) === "1"; } catch (e) {}
+  if (seen) return;
+  note.hidden = false;
+  note.querySelector("[data-cookie-ok]").addEventListener("click", () => {
+    try { localStorage.setItem(KEY, "1"); } catch (e) {}
+    note.hidden = true;
+  });
 })();
 
 /* ---------- Formulario ---------- */
