@@ -13,7 +13,7 @@ const CONFIG = {
   calendlyUrl: "",
   // ID de medición de Google Analytics 4 (G-XXXXXXXXXX). Vacío = sin analítica.
   // Solo se carga si el visitante acepta las cookies en el banner.
-  gaId: "",
+  gaId: "G-GQZBLFT13K",
 };
 
 /* ---------- Titular: aparición letra a letra (como en el diseño) ---------- */
