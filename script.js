@@ -11,6 +11,9 @@ const CONFIG = {
   email: "tomassobisch@sobtom.com",
   // Enlace a tu calendario (Calendly, Cal.com…). Si está vacío, el enlace no se muestra.
   calendlyUrl: "",
+  // ID de medición de Google Analytics 4 (G-XXXXXXXXXX). Vacío = sin analítica.
+  // Solo se carga si el visitante acepta las cookies en el banner.
+  gaId: "",
 };
 
 /* ---------- Titular: aparición letra a letra (como en el diseño) ---------- */
@@ -62,20 +65,76 @@ const CONFIG = {
   }
 })();
 
-/* ---------- Aviso de cookies (informativo) ----------
-   La web no instala cookies propias. Recordamos que el aviso se cerró
-   con localStorage, que es técnico y no requiere consentimiento. */
-(function cookieNote() {
-  const note = document.querySelector("[data-cookie-note]");
-  if (!note) return;
-  const KEY = "cookie-note-ok";
-  let seen = false;
-  try { seen = localStorage.getItem(KEY) === "1"; } catch (e) {}
-  if (seen) return;
-  note.hidden = false;
-  note.querySelector("[data-cookie-ok]").addEventListener("click", () => {
-    try { localStorage.setItem(KEY, "1"); } catch (e) {}
-    note.hidden = true;
+/* ---------- Cookies y Google Analytics ----------
+   - Sin gaId: aviso informativo (la web no usa cookies de seguimiento).
+   - Con gaId: banner Aceptar / Rechazar. Analytics SOLO se carga si se acepta. */
+function loadAnalytics() {
+  if (!CONFIG.gaId || window.__gaLoaded) return;
+  window.__gaLoaded = true;
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(CONFIG.gaId);
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () { window.dataLayer.push(arguments); };
+  window.gtag("js", new Date());
+  window.gtag("config", CONFIG.gaId);
+}
+
+function trackEvent(name, params) {
+  if (typeof window.gtag === "function") window.gtag("event", name, params || {});
+}
+
+(function cookieConsent() {
+  const KEY = CONFIG.gaId ? "cookie-consent" : "cookie-note-ok";
+  const read = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
+  const save = (v) => { try { localStorage.setItem(KEY, v); } catch (e) {} };
+
+  const policy = '<a href="politica-de-cookies.html">política de cookies</a>';
+  const bar = document.createElement("div");
+  bar.className = "cookie-note";
+  bar.setAttribute("role", "region");
+  bar.setAttribute("aria-label", "Aviso de cookies");
+  bar.hidden = true;
+  bar.innerHTML = CONFIG.gaId
+    ? '<p>Uso cookies de Google Analytics para saber cuántas personas visitan la web y mejorarla. Solo se activan si las aceptas. Más info en la ' + policy + '.</p>' +
+      '<div class="cookie-note__actions"><button type="button" class="btn btn--ghost btn--sm" data-cookie="denied">Rechazar</button>' +
+      '<button type="button" class="btn btn--primary btn--sm" data-cookie="granted">Aceptar</button></div>'
+    : '<p>Esta web no usa cookies de seguimiento ni publicidad. Más info en la ' + policy + '.</p>' +
+      '<button type="button" class="btn btn--primary btn--sm" data-cookie="1">Entendido</button>';
+  document.body.appendChild(bar);
+
+  bar.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-cookie]");
+    if (!btn) return;
+    save(btn.dataset.cookie);
+    bar.hidden = true;
+    if (btn.dataset.cookie === "granted") loadAnalytics();
+  });
+
+  const choice = read();
+  if (CONFIG.gaId && choice === "granted") loadAnalytics();
+  if (!choice) bar.hidden = false;
+
+  // Enlace "Configurar cookies" del footer (solo tiene sentido con Analytics)
+  document.querySelectorAll("[data-cookie-settings]").forEach((link) => {
+    if (!CONFIG.gaId) return;
+    link.hidden = false;
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (read() === "granted") {
+        // Retirar el consentimiento: borrar cookies _ga y recargar sin Analytics
+        document.cookie.split(";").map((c) => c.split("=")[0].trim())
+          .filter((n) => n.startsWith("_ga"))
+          .forEach((n) => {
+            const host = location.hostname;
+            document.cookie = n + "=; Max-Age=0; path=/";
+            document.cookie = n + "=; Max-Age=0; path=/; domain=." + host.replace(/^www\./, "");
+          });
+      }
+      try { localStorage.removeItem(KEY); } catch (err) {}
+      if (window.__gaLoaded) location.reload(); else bar.hidden = false;
+    });
   });
 })();
 
@@ -157,6 +216,7 @@ const CONFIG = {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok || String(json.success) !== "true") throw new Error(json.message || "HTTP " + res.status);
+        trackEvent("generate_lead", { form: "agendar_llamada" });
         showDone();
       } catch (err) {
         console.error("[form]", err);
