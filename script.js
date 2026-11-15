@@ -2,11 +2,10 @@
    CONFIGURACIÓN — rellena estos valores y listo.
    ============================================================ */
 const CONFIG = {
-  // Servicio que reenvía cada solicitud del formulario a tu correo (FormSubmit.co, gratis).
-  // Tras activarlo, puedes cambiar el email de la URL por el alias aleatorio que te da
-  // FormSubmit para no exponer tu dirección. Si falla, el formulario abre el correo del
+  // Función propia de la web (api/contact.js) que envía cada solicitud a tu correo
+  // corporativo desde tu propio Outlook. Si falla, el formulario abre el correo del
   // visitante con el mensaje ya escrito (plan B).
-  formEndpoint: "https://formsubmit.co/ajax/tomassobisch@sobtom.com",
+  formEndpoint: "/api/contact",
   // Tu email de contacto (se muestra en el footer y se usa como alternativa al endpoint).
   email: "tomassobisch@sobtom.com",
   // Enlace a tu calendario (Calendly, Cal.com…). Si está vacío, el enlace no se muestra.
@@ -203,15 +202,12 @@ function trackEvent(name, params) {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({
-            _subject: "Nuevo cliente potencial: " + data.nombre + (data.negocio ? " (" + data.negocio + ")" : ""),
-            _template: "table",
-            _replyto: data.email,
-            Nombre: data.nombre,
-            Negocio: data.negocio || "-",
-            Email: data.email,
-            WhatsApp: data.whatsapp || "-",
-            "Qué quiere automatizar": data.mensaje || "-",
-            Página: location.href,
+            nombre: data.nombre,
+            negocio: data.negocio,
+            email: data.email,
+            whatsapp: data.whatsapp,
+            mensaje: data.mensaje,
+            pagina: location.href,
           }),
         });
         const json = await res.json().catch(() => ({}));

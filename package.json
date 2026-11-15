@@ -1,0 +1,8 @@
+{
+  "name": "tomassobisch-web",
+  "private": true,
+  "description": "Landing estática + función /api/contact que envía las solicitudes al correo corporativo",
+  "dependencies": {
+    "nodemailer": "10.3.1"
+  }
+}
