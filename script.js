@@ -6,6 +6,8 @@ const CONFIG = {
   // corporativo desde tu propio Outlook. Si falla, el formulario abre el correo del
   // visitante con el mensaje ya escrito (plan B).
   formEndpoint: "/api/contact",
+  // Respaldo automático si la función propia falla (FormSubmit, ya activado).
+  backupEndpoint: "https://formsubmit.co/ajax/tomassobisch@sobtom.com",
   // Tu email de contacto (se muestra en el footer y se usa como alternativa al endpoint).
   email: "tomassobisch@sobtom.com",
   // Enlace a tu calendario (Calendly, Cal.com…). Si está vacío, el enlace no se muestra.
@@ -197,21 +199,42 @@ function trackEvent(name, params) {
     if (CONFIG.formEndpoint) {
       btn.disabled = true;
       btn.textContent = "Enviando…";
-      try {
-        const res = await fetch(CONFIG.formEndpoint, {
+      const postJSON = async (url, payload) => {
+        const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || String(json.success) !== "true") throw new Error(json.message || "HTTP " + res.status);
+      };
+      try {
+        try {
+          // 1º: función propia (envía desde tu Outlook corporativo)
+          await postJSON(CONFIG.formEndpoint, {
             nombre: data.nombre,
             negocio: data.negocio,
             email: data.email,
             whatsapp: data.whatsapp,
             mensaje: data.mensaje,
             pagina: location.href,
-          }),
-        });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok || String(json.success) !== "true") throw new Error(json.message || "HTTP " + res.status);
+          });
+        } catch (primaryErr) {
+          console.warn("[form] envío principal falló, usando respaldo:", primaryErr.message);
+          if (!CONFIG.backupEndpoint) throw primaryErr;
+          // 2º: respaldo automático (FormSubmit), invisible para el visitante
+          await postJSON(CONFIG.backupEndpoint, {
+            _subject: "Nuevo cliente potencial: " + data.nombre + (data.negocio ? " (" + data.negocio + ")" : ""),
+            _template: "table",
+            _replyto: data.email,
+            Nombre: data.nombre,
+            Negocio: data.negocio || "-",
+            Email: data.email,
+            WhatsApp: data.whatsapp || "-",
+            "Qué quiere automatizar": data.mensaje || "-",
+            Página: location.href,
+          });
+        }
         trackEvent("generate_lead", { form: "agendar_llamada" });
         showDone();
       } catch (err) {
