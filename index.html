@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <script src="script.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20261122">
+  <script src="script.js?v=20261122" defer></script>
 </head>
 <body>
 <a class="skip" href="#servicios">Saltar al contenido</a>
@@ -244,7 +244,18 @@
         <span class="done__icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0E0B1F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span>
         <h3 class="done__title">¡Recibido!</h3>
         <p class="done__text">Te escribo en menos de 24 horas para cerrar el día y la hora de la llamada.</p>
-        <button type="button" id="lead-reset" class="btn btn--outline">Enviar otra solicitud</button>
+        <button type="button" class="btn btn--outline" data-lead-back data-lead-reset>Enviar otra solicitud</button>
+      </div>
+      <div id="lead-fallback" class="done done--fallback" hidden tabindex="-1">
+        <h3 class="done__title">Último paso: envíamelo tú</h3>
+        <p class="done__text">No he podido enviarlo automáticamente. Tu mensaje ya está preparado: elige cómo mandármelo.</p>
+        <div class="fb__actions">
+          <a href="#" class="btn btn--primary btn--fb" data-fb-mail>Enviar por email</a>
+          <a href="https://ig.me/m/tomassobisch.ai" target="_blank" rel="noopener" class="btn btn--ghost btn--fb">Escribirme por Instagram</a>
+          <button type="button" class="btn btn--ghost btn--fb" data-fb-copy>Copiar mi mensaje</button>
+        </div>
+        <p class="fb__addr">O escríbeme a <strong data-fb-address>tomassobisch@sobtom.com</strong></p>
+        <button type="button" class="text-btn" data-lead-back>← Volver al formulario</button>
       </div>
     </div>
   </div>

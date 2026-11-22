@@ -143,25 +143,80 @@ function trackEvent(name, params) {
 (function leadForm() {
   const form = document.getElementById("lead-form");
   const ok = document.getElementById("lead-ok");
-  const reset = document.getElementById("lead-reset");
+  const fb = document.getElementById("lead-fallback");
   if (!form) return;
   const note = form.querySelector(".form__note");
   const btn = form.querySelector("button[type=submit]");
+  const btnLabel = btn.textContent;
   const defaultNote = note.textContent;
+  const TIMEOUT_MS = 6000; // cada intento; máximo ~12 s en total
 
   const setNote = (text, isError) => {
     note.textContent = text;
     note.classList.toggle("is-error", !!isError);
   };
+  const show = (el) => {
+    [form, ok, fb].forEach((x) => x && (x.hidden = x !== el));
+    el.focus();
+  };
+  const setBusy = (busy) => {
+    btn.disabled = busy;
+    btn.classList.toggle("is-loading", busy);
+    btn.textContent = busy ? "Enviando…" : btnLabel;
+  };
 
-  const showDone = () => {
-    form.hidden = true;
-    ok.hidden = false;
-    ok.focus();
+  const postJSON = async (url, payload) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+        signal: ctrl.signal,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || String(json.success) !== "true") throw new Error(json.message || "HTTP " + res.status);
+    } catch (e) {
+      throw new Error(e.name === "AbortError" ? "Tiempo de espera agotado" : e.message);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  // Panel de respaldo: el visitante envía su mensaje con un clic, sin perder lo escrito.
+  const showFallback = (data) => {
+    const text = [
+      "Hola Tomás, quiero agendar la llamada gratis de 15 min.",
+      "",
+      "Nombre: " + data.nombre,
+      "Negocio: " + (data.negocio || "-"),
+      "Email: " + data.email,
+      "WhatsApp: " + (data.whatsapp || "-"),
+      "",
+      "¿Qué me gustaría automatizar?",
+      data.mensaje || "-",
+    ].join("\n");
+    fb.querySelector("[data-fb-mail]").href =
+      "mailto:" + CONFIG.email +
+      "?subject=" + encodeURIComponent("Llamada gratis de 15 min — " + data.nombre) +
+      "&body=" + encodeURIComponent(text);
+    fb.querySelector("[data-fb-address]").textContent = CONFIG.email;
+    const copyBtn = fb.querySelector("[data-fb-copy]");
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = "¡Mensaje copiado!";
+      } catch (e) {
+        copyBtn.textContent = "Copia el email de arriba";
+      }
+    };
+    show(fb);
   };
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (btn.disabled) return;
 
     // Validación
     let firstInvalid = null;
@@ -180,97 +235,39 @@ function trackEvent(name, params) {
     if (data._honey) return; // bot
     delete data._honey;
 
-    const sendByMail = () => {
-      const body = [
-        "Nombre: " + data.nombre,
-        "Negocio: " + (data.negocio || "-"),
-        "Email: " + data.email,
-        "WhatsApp: " + (data.whatsapp || "-"),
-        "",
-        "¿Qué me gustaría automatizar?",
-        data.mensaje || "-",
-      ].join("\n");
-      window.location.href =
-        "mailto:" + CONFIG.email +
-        "?subject=" + encodeURIComponent("Llamada gratis de 15 min — " + data.nombre) +
-        "&body=" + encodeURIComponent(body);
-    };
-
-    if (CONFIG.formEndpoint) {
-      btn.disabled = true;
-      btn.textContent = "Enviando…";
-      // Cada intento tiene un límite de 15 s para que el formulario nunca se quede colgado.
-      const postJSON = async (url, payload) => {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 15000);
-        let res;
-        try {
-          res = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify(payload),
-            signal: ctrl.signal,
-          });
-        } catch (e) {
-          throw new Error(e.name === "AbortError" ? "Tiempo de espera agotado" : e.message);
-        } finally {
-          clearTimeout(timer);
-        }
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok || String(json.success) !== "true") throw new Error(json.message || "HTTP " + res.status);
-      };
+    setBusy(true);
+    try {
       try {
-        try {
-          // 1º: función propia (envía desde tu Outlook corporativo)
-          await postJSON(CONFIG.formEndpoint, {
-            nombre: data.nombre,
-            negocio: data.negocio,
-            email: data.email,
-            whatsapp: data.whatsapp,
-            mensaje: data.mensaje,
-            pagina: location.href,
-          });
-        } catch (primaryErr) {
-          console.warn("[form] envío principal falló, usando respaldo:", primaryErr.message);
-          if (!CONFIG.backupEndpoint) throw primaryErr;
-          // 2º: respaldo automático (FormSubmit), invisible para el visitante
-          await postJSON(CONFIG.backupEndpoint, {
-            _subject: "Nuevo cliente potencial: " + data.nombre + (data.negocio ? " (" + data.negocio + ")" : ""),
-            _template: "table",
-            _replyto: data.email,
-            Nombre: data.nombre,
-            Negocio: data.negocio || "-",
-            Email: data.email,
-            WhatsApp: data.whatsapp || "-",
-            "Qué quiere automatizar": data.mensaje || "-",
-            Página: location.href,
-          });
-        }
-        trackEvent("generate_lead", { form: "agendar_llamada" });
-        showDone();
-      } catch (err) {
-        console.error("[form]", err);
-        // Plan B para no perder nunca un cliente: abrir su correo con el mensaje ya escrito.
-        if (CONFIG.email) {
-          setNote("No se pudo enviar automáticamente. Se abrirá tu correo con el mensaje listo: solo dale a enviar.", true);
-          sendByMail();
-        } else {
-          setNote("No se pudo enviar. Inténtalo de nuevo o escríbeme por Instagram.", true);
-        }
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Quiero mi llamada gratis";
+        // 1º: función propia (envía desde tu Outlook corporativo)
+        await postJSON(CONFIG.formEndpoint, {
+          nombre: data.nombre, negocio: data.negocio, email: data.email,
+          whatsapp: data.whatsapp, mensaje: data.mensaje, pagina: location.href,
+        });
+      } catch (primaryErr) {
+        console.warn("[form] envío principal falló:", primaryErr.message);
+        if (!CONFIG.backupEndpoint) throw primaryErr;
+        // 2º: respaldo automático (FormSubmit)
+        await postJSON(CONFIG.backupEndpoint, {
+          _subject: "Nuevo cliente potencial: " + data.nombre + (data.negocio ? " (" + data.negocio + ")" : ""),
+          _template: "table",
+          _replyto: data.email,
+          Nombre: data.nombre,
+          Negocio: data.negocio || "-",
+          Email: data.email,
+          WhatsApp: data.whatsapp || "-",
+          "Qué quiere automatizar": data.mensaje || "-",
+          Página: location.href,
+        });
       }
-      return;
+      trackEvent("generate_lead", { form: "agendar_llamada" });
+      show(ok);
+    } catch (err) {
+      console.error("[form]", err.message);
+      trackEvent("form_fallback", { form: "agendar_llamada" });
+      showFallback(data);
+    } finally {
+      setBusy(false);
     }
-
-    if (CONFIG.email) {
-      sendByMail();
-      showDone();
-      return;
-    }
-
-    setNote("El formulario aún no está activo. Escríbeme por Instagram @tomassobisch.ai.", true);
   });
 
   form.addEventListener("input", (e) => {
@@ -280,11 +277,12 @@ function trackEvent(name, params) {
     if (note.classList.contains("is-error")) setNote(defaultNote, false);
   });
 
-  reset.addEventListener("click", () => {
-    form.reset();
-    ok.hidden = true;
-    form.hidden = false;
-    setNote(defaultNote, false);
-    form.querySelector("input").focus();
-  });
+  document.querySelectorAll("[data-lead-back]").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (b.hasAttribute("data-lead-reset")) form.reset();
+      setNote(defaultNote, false);
+      show(form);
+      form.querySelector("input").focus();
+    })
+  );
 })();
