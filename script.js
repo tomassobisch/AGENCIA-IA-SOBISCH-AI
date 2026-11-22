@@ -199,12 +199,23 @@ function trackEvent(name, params) {
     if (CONFIG.formEndpoint) {
       btn.disabled = true;
       btn.textContent = "Enviando…";
+      // Cada intento tiene un límite de 15 s para que el formulario nunca se quede colgado.
       const postJSON = async (url, payload) => {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify(payload),
-        });
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 15000);
+        let res;
+        try {
+          res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(payload),
+            signal: ctrl.signal,
+          });
+        } catch (e) {
+          throw new Error(e.name === "AbortError" ? "Tiempo de espera agotado" : e.message);
+        } finally {
+          clearTimeout(timer);
+        }
         const json = await res.json().catch(() => ({}));
         if (!res.ok || String(json.success) !== "true") throw new Error(json.message || "HTTP " + res.status);
       };

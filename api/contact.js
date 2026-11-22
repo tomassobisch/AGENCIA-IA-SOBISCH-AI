@@ -74,6 +74,9 @@ module.exports = async (req, res) => {
     secure: false,
     requireTLS: true,
     auth: { user: SMTP_USER, pass: SMTP_PASS },
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 12000,
   });
 
   const rows = [
