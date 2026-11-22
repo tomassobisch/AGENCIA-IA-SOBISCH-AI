@@ -22,7 +22,7 @@ python3 -m http.server 8000
 ## Antes de publicar: rellena los datos pendientes
 
 1. **`script.js` → `CONFIG`**
-   - `formEndpoint`: `/api/contact`, la función propia en `api/contact.js`, que envía cada solicitud desde tu Outlook corporativo. Necesita en Vercel las variables de entorno `SMTP_USER` y `SMTP_PASS` (y SMTP autenticado activado en Microsoft 365 para ese buzón).
+   - `formEndpoint`: Formspree (`https://formspree.io/f/mgaknqrk`). Las solicitudes llegan a tu correo y se guardan en formspree.io → Submissions. `backupEndpoint` (`/api/contact`) es el respaldo con tu Outlook (requiere `SMTP_PASS` válido en Vercel).
    - `email`: ya configurado (`tomassobisch@sobtom.com`).
    - `calendlyUrl`: enlace a tu calendario. Si está vacío, el enlace "Prefiero reservar directamente…" no se muestra.
 

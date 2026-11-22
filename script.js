@@ -2,12 +2,11 @@
    CONFIGURACIÓN — rellena estos valores y listo.
    ============================================================ */
 const CONFIG = {
-  // Función propia de la web (api/contact.js) que envía cada solicitud a tu correo
-  // corporativo desde tu propio Outlook. Si falla, el formulario abre el correo del
-  // visitante con el mensaje ya escrito (plan B).
-  formEndpoint: "/api/contact",
-  // Respaldo automático si la función propia falla (FormSubmit, ya activado).
-  backupEndpoint: "https://formsubmit.co/ajax/tomassobisch@sobtom.com",
+  // Envío principal: Formspree (llega a tu correo y queda guardado en su panel).
+  formEndpoint: "https://formspree.io/f/mgaknqrk",
+  // Respaldo: función propia (api/contact.js) que envía desde tu Outlook
+  // cuando Microsoft lo permita (necesita SMTP_PASS válido en Vercel).
+  backupEndpoint: "/api/contact",
   // Tu email de contacto (se muestra en el footer y se usa como alternativa al endpoint).
   email: "tomassobisch@sobtom.com",
   // Enlace a tu calendario (Calendly, Cal.com…). Si está vacío, el enlace no se muestra.
@@ -176,7 +175,11 @@ function trackEvent(name, params) {
         signal: ctrl.signal,
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok || String(json.success) !== "true") throw new Error(json.message || "HTTP " + res.status);
+      const accepted = json.ok === true || String(json.success) === "true";
+      if (!res.ok || !accepted) {
+        const msg = json.message || (json.errors && json.errors.map((x) => x.message).join("; ")) || "HTTP " + res.status;
+        throw new Error(msg);
+      }
     } catch (e) {
       throw new Error(e.name === "AbortError" ? "Tiempo de espera agotado" : e.message);
     } finally {
@@ -237,26 +240,25 @@ function trackEvent(name, params) {
 
     setBusy(true);
     try {
+      const subject = "Nuevo cliente potencial: " + data.nombre + (data.negocio ? " (" + data.negocio + ")" : "");
       try {
-        // 1º: función propia (envía desde tu Outlook corporativo)
+        // 1º: Formspree
         await postJSON(CONFIG.formEndpoint, {
-          nombre: data.nombre, negocio: data.negocio, email: data.email,
-          whatsapp: data.whatsapp, mensaje: data.mensaje, pagina: location.href,
+          _subject: subject,
+          email: data.email,
+          Nombre: data.nombre,
+          Negocio: data.negocio || "-",
+          WhatsApp: data.whatsapp || "-",
+          "Qué quiere automatizar": data.mensaje || "-",
+          Página: location.href,
         });
       } catch (primaryErr) {
         console.warn("[form] envío principal falló:", primaryErr.message);
         if (!CONFIG.backupEndpoint) throw primaryErr;
-        // 2º: respaldo automático (FormSubmit)
+        // 2º: respaldo con la función propia (Outlook)
         await postJSON(CONFIG.backupEndpoint, {
-          _subject: "Nuevo cliente potencial: " + data.nombre + (data.negocio ? " (" + data.negocio + ")" : ""),
-          _template: "table",
-          _replyto: data.email,
-          Nombre: data.nombre,
-          Negocio: data.negocio || "-",
-          Email: data.email,
-          WhatsApp: data.whatsapp || "-",
-          "Qué quiere automatizar": data.mensaje || "-",
-          Página: location.href,
+          nombre: data.nombre, negocio: data.negocio, email: data.email,
+          whatsapp: data.whatsapp, mensaje: data.mensaje, pagina: location.href,
         });
       }
       trackEvent("generate_lead", { form: "agendar_llamada" });
